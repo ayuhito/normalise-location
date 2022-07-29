@@ -48,8 +48,12 @@ We only want to keep A and P. Remove all others. */
 
 type FeatureClasses = 'A' | 'H' | 'L' | 'P' | 'R' | 'S' | 'T' | 'U' | 'V';
 type Record = [GeonameId: string, Name: string, AsciiName: string, AlternateNames: string, Latitude: string, Longitude: string, FeatureClass: FeatureClasses, FeatureCode: string, CountryCode: string, CC2: string, Admin1Code: string, Admin2Code: string, Admin3Code: string, Admin4Code: string, Population: string, Elevation: string, Dem: string, Timezone: string, ModificationDate: string];
+// http://www.geonames.org/statistics/total.html - lower index has higher precedence
+const acceptedFeatureCodes = ['ADM1', 'ADM2', 'ADM3', 'ADM4', 'ADM5', 'ADMD', 'PCLD', 'ZN', 'LTER', 'TERR', 'PPLC', 'PPLA', 'PPLA2', 'PPLA3', 'PPLA4', 'PPLA5', 'PPLG', 'PPLS', 'PPLX', 'PPLL', 'PPL'] as const;
+type FeatureCodes = typeof acceptedFeatureCodes[number];
+const isFeatureCode = (featureKey: string): featureKey is FeatureCodes => acceptedFeatureCodes.includes(featureKey as FeatureCodes);
 
-const readStream = fs.createReadStream(path.join(process.cwd(), 'dump/raw/allCountriesSubset.txt'), { encoding: 'utf8' });
+const readStream = fs.createReadStream(path.join(process.cwd(), 'dump/raw/allCountries.txt'), { encoding: 'utf8' });
 const writeStream = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNames.json'), { encoding: 'utf8' });
 const writeStreamCountry = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNamesCountry.json'), { encoding: 'utf8' });
 const altNames = altNamesV2 as AltFinalLocation;
@@ -58,7 +62,7 @@ interface Locations {
   [preferredName: string]: {
     names: string[]
     preferredName: string
-    // class: FeatureClasses
+    code: FeatureCodes
     population: number
   }
 }
@@ -76,12 +80,12 @@ const parser = parse({
   relax_quotes: true,
 });
 
-// Use the readable stream api to consume records
 parser.on('readable', () => {
   let record: Record;
   // eslint-disable-next-line no-cond-assign
   while ((record = parser.read()) !== null) {
-    if (record[6] === 'A' || record[6] === 'P') {
+    const population = Number(record[14]);
+    if (population > 0 && isFeatureCode(record[7])) {
       const preferredName = altNames[record[0]] ?? record[1];
       // Use set to get rid of duplicates
       const names = record[3] === '' ? new Set([]) : new Set(record[3].split(','));
@@ -91,8 +95,8 @@ parser.on('readable', () => {
       const recordObj = {
         names: [...names],
         preferredName,
-        // class: record[6],
-        population: Number(record[14])
+        code: record[7],
+        population,
       };
 
       records[preferredName] = recordObj;
@@ -108,62 +112,91 @@ parser.on('error', (err) => {
   consola.error(err.message);
 });
 
-interface FinalExport {
-  [name: string]: string[]
-}
 
-parser.on('end', () => {
-  consola.success('Finished parsing.');
-  const writeStream2 = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNames2.json'), { encoding: 'utf8' });
-  writeStream2.write(stringify(records));
-  writeStreamCountry.write(stringify(recordsCountry));
 
-  // Filter out all alt name conflicts with preferred names, every name has to be unique
-  for (const preferredName of Object.keys(records)) {
-    const record = records[preferredName];
+// Filter out all alt name conflicts with preferred names, every name has to be unique
+const cleanRecords = (recordData: Locations) => {
+  for (const preferredName of Object.keys(recordData)) {
+    const record = recordData[preferredName];
     // Note that we delete duplicate records, so object keys can be undefined
     if (record) {
-
       // Check if any alt names exist in existing records
       let altFlag = false;
       for (const altName of record.names) {
-        // Only keep the record with the higher population
-        if (records[altName] && record.population > records[altName].population) {
-          consola.info(`Replaced ${altName} ${records[altName].population} with ${record.preferredName} ${record.population}`);
+        // Only keep the record with lower index
+        if (recordData[altName] && acceptedFeatureCodes.indexOf(record.code) < acceptedFeatureCodes.indexOf(recordData[altName].code)) {
+          consola.info(`Replaced ${altName} ${recordData[altName].population} ${recordData[altName].code} with ${record.preferredName} ${record.population} ${record.code}`);
           altFlag = true;
-          delete records[altName];
-          records[record.preferredName] = {
+          delete recordData[altName];
+          recordData[record.preferredName] = {
             preferredName: record.preferredName,
             names: record.names,
+            code: record.code,
             population: record.population
           };
         }
       }
 
       // If no alt name replacement occurred, just add the record
-      if (altFlag === false && !records[record.preferredName]) {
-        records[record.preferredName] = {
+      if (altFlag === false && !recordData[record.preferredName]) {
+        recordData[record.preferredName] = {
           preferredName: record.preferredName,
           names: record.names,
+          code: record.code,
           population: record.population
         };
       }
-
     }
   }
+  return recordData;
+};
+
+interface FinalExport {
+  [name: string]: string[]
+}
+
+interface FinalExportCountry {
+  [countryCode: string]: FinalExport
+}
+
+parser.on('end', () => {
+  consola.success('Finished parsing.');
+  // const writeStream2 = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNames2.json'), { encoding: 'utf8' });
+  // writeStream2.write(stringify(records));
+
+  const cleanedRecords = cleanRecords(records);
+
+  for (const countryRecords of Object.keys(recordsCountry)) {
+    const cleanedCountryRecords = cleanRecords(recordsCountry[countryRecords]);
+    recordsCountry[countryRecords] = cleanedCountryRecords;
+  }
+
   consola.success('Finished cleaning out alt name duplicates.');
 
   // Convert to final export data
   const finalExport: FinalExport = {};
-  for (const preferredName of Object.keys(records)) {
-    const record = records[preferredName];
+  for (const preferredName of Object.keys(cleanedRecords)) {
+    const record = cleanedRecords[preferredName];
     finalExport[preferredName] = record.names;
+  }
+
+  const finalExportCountry: FinalExportCountry = {};
+  for (const countryCode of Object.keys(recordsCountry)) {
+    const countryRecordsObj = recordsCountry[countryCode];
+    finalExportCountry[countryCode] = finalExportCountry[countryCode] ?? {};
+
+    for (const preferredName of Object.keys(countryRecordsObj)) {
+      const record = countryRecordsObj[preferredName];
+      finalExportCountry[countryCode][preferredName] = record.names;
+    }
   }
   consola.success('Finished cleaning records for export.');
 
   writeStream.write(stringify(finalExport));
+  writeStreamCountry.write(stringify(recordsCountry));
   consola.success('Finished writing.');
   writeStream.end();
+  writeStreamCountry.end();
 });
 
 readStream.pipe(parser);
