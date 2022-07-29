@@ -5,6 +5,7 @@ import * as fs from 'node:fs';
 import * as path from 'pathe';
 
 import altNamesV2 from '../data/geocodeNames.json';
+import { acceptedFeatureCodes, isFeatureCode, LocationCountry, Locations } from '../src/types';
 import type { AltFinalLocation } from './types';
 
 
@@ -48,29 +49,16 @@ We only want to keep A and P. Remove all others. */
 
 type FeatureClasses = 'A' | 'H' | 'L' | 'P' | 'R' | 'S' | 'T' | 'U' | 'V';
 type Record = [GeonameId: string, Name: string, AsciiName: string, AlternateNames: string, Latitude: string, Longitude: string, FeatureClass: FeatureClasses, FeatureCode: string, CountryCode: string, CC2: string, Admin1Code: string, Admin2Code: string, Admin3Code: string, Admin4Code: string, Population: string, Elevation: string, Dem: string, Timezone: string, ModificationDate: string];
-// http://www.geonames.org/statistics/total.html - lower index has higher precedence
-const acceptedFeatureCodes = ['ADM1', 'ADM2', 'ADM3', 'ADM4', 'ADM5', 'ADMD', 'PCLD', 'ZN', 'LTER', 'TERR', 'PPLC', 'PPLA', 'PPLA2', 'PPLA3', 'PPLA4', 'PPLA5', 'PPLG', 'PPLS', 'PPLX', 'PPLL', 'PPL'] as const;
-type FeatureCodes = typeof acceptedFeatureCodes[number];
-const isFeatureCode = (featureKey: string): featureKey is FeatureCodes => acceptedFeatureCodes.includes(featureKey as FeatureCodes);
 
 const readStream = fs.createReadStream(path.join(process.cwd(), 'dump/raw/allCountries.txt'), { encoding: 'utf8' });
 const writeStream = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNames.json'), { encoding: 'utf8' });
 const writeStreamCountry = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNamesCountry.json'), { encoding: 'utf8' });
 const altNames = altNamesV2 as AltFinalLocation;
 
-interface Locations {
-  [preferredName: string]: {
-    names: string[]
-    preferredName: string
-    code: FeatureCodes
-    population: number
-  }
-}
+
 const records: Locations = {};
 
-interface LocationCountry {
-  [countryCode: string]: Locations;
-}
+
 const recordsCountry: LocationCountry = {};
 
 // Initialize the parser
@@ -151,14 +139,6 @@ const cleanRecords = (recordData: Locations) => {
   return recordData;
 };
 
-interface FinalExport {
-  [name: string]: string[]
-}
-
-interface FinalExportCountry {
-  [countryCode: string]: FinalExport
-}
-
 parser.on('end', () => {
   consola.success('Finished parsing.');
   // const writeStream2 = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNames2.json'), { encoding: 'utf8' });
@@ -174,7 +154,7 @@ parser.on('end', () => {
   consola.success('Finished cleaning out alt name duplicates.');
 
   // Convert to final export data
-  const finalExport: FinalExport = {};
+  /* const finalExport: FinalExport = {};
   for (const preferredName of Object.keys(cleanedRecords)) {
     const record = cleanedRecords[preferredName];
     finalExport[preferredName] = record.names;
@@ -190,9 +170,9 @@ parser.on('end', () => {
       finalExportCountry[countryCode][preferredName] = record.names;
     }
   }
-  consola.success('Finished cleaning records for export.');
+  consola.success('Finished cleaning records for export.'); */
 
-  writeStream.write(stringify(finalExport));
+  writeStream.write(stringify(cleanedRecords));
   writeStreamCountry.write(stringify(recordsCountry));
   consola.success('Finished writing.');
   writeStream.end();

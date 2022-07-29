@@ -1,0 +1,5 @@
+{
+  "extension": ["ts"],
+  "node-option": ["experimental-specifier-resolution=node", "loader=tsx"],
+  "spec": ["tests/**/*.test.ts"]
+}
