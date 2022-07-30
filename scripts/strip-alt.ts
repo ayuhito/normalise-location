@@ -70,8 +70,8 @@ const updateRecord = (oldRecord: LocationRecord, newRecord: LocationRecord): Loc
   // if (!isShort[0] && isShort[1] && !isEn[0])
   // return newRecord;
 
-  // If old record isn't english, short or preferred and new record is english
-  if (!isEn[0] && !isShort[0] && !isPreferred[0] && isEn[1])
+  // If old record isn't english, short and preferred and new record is english
+  if (!isEn[0] && !isShortPreferred[0] && isEn[1])
     return newRecord;
 
   return oldRecord;
