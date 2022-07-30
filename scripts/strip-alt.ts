@@ -31,7 +31,7 @@ const readStream = fs.createReadStream(path.join(process.cwd(), 'dump/raw/altern
 const writeStream = fs.createWriteStream(path.join(process.cwd(), 'data/geocodeNames.json'), { encoding: 'utf8' });
 const usableGeocodes = new Set(geocodesImport as string[]);
 
-type LocationRecord = [alternateName: string, isPreferredName: number, isShortName: number]
+type LocationRecord = [alternateName: string, isPreferredName: number, isShortName: number, iso: string]
 interface Locations {
   [geonameid: string]: LocationRecord;
 }
@@ -42,33 +42,61 @@ const parser = parse({
   encoding: 'utf8',
   relax_quotes: true,
 });
-// Use the readable stream api to consume records
+
+
+const updateRecord = (oldRecord: LocationRecord, newRecord: LocationRecord): LocationRecord => {
+  const isEn = [oldRecord[3] === 'en', newRecord[3] === 'en'];
+  const isShort = [oldRecord[2] === 1, newRecord[2] === 1];
+  const isPreferred = [oldRecord[1] === 1, newRecord[1] === 1];
+  const isShortPreferred = [isShort[0] && isPreferred[0], isShort[1] && isPreferred[1]];
+
+  // If new record short name and preferred and English, highest priority
+  if (isShortPreferred[1] && isEn[1])
+    return newRecord;
+
+  // If new record short and English, and old record is not short
+  if (isShort[1] && isEn[1] && !isShort[0])
+    return newRecord;
+
+  // If new is preferred and English and old is not preferred or short
+  if (isPreferred[1] && isEn[1] && !isPreferred[0] && !isShort[0])
+    return newRecord;
+
+  // If new is short and preferred and and old is not short or preferred or English
+  //if (!isShortPreferred[0] && isShortPreferred[1] && !isEn[0])
+  //return newRecord;
+
+  // If new is short and not short
+  // if (!isShort[0] && isShort[1] && !isEn[0])
+  // return newRecord;
+
+  // If old record isn't english, short or preferred and new record is english
+  if (!isEn[0] && !isShort[0] && !isPreferred[0] && isEn[1])
+    return newRecord;
+
+  return oldRecord;
+}
+
 parser.on('readable', () => {
   let record: Record;
   // eslint-disable-next-line no-cond-assign
   while ((record = parser.read()) !== null) {
     const geonameId = record[1];
-    // Only refer to iso country codes or undefined, skip post or links
-    if (usableGeocodes.has(geonameId) && record[2].length <= 3) {
-      const alternateName = record[3];
+    const iso = record[2];
+    // Only refer to iso country codes or undefined, skip post or links, or historical or colloquial
+    if (usableGeocodes.has(geonameId) && iso.length <= 3 && record[6] !== '1' && record[7] !== '1') {
+      // Remove city, town, the names
+      const alternateName = record[3].replace(/(?:\s+|^)(?:the|city|district)(?:\s+|$)/gi, '').replace(/[.,:()]/g, "").replace(/[-]/g, " ").replace(/s{2,}/g, " ").trim();
       const isPreferredName = record[4] === '' ? 0 : 1;
       const isShortName = record[5] === '' ? 0 : 1;
+      const newRecord: LocationRecord = [alternateName, isPreferredName, isShortName, iso];
 
-      // if en
-      //
       // If record doesn't exist, just add any option
       if (!records[geonameId]) {
-        records[geonameId] = [alternateName, isPreferredName, isShortName];
-        // Highest precedence is both preferred and short name
-      } else if (isPreferredName === 1 && isShortName === 1) {
-        records[geonameId] = [alternateName, isPreferredName, isShortName];
-        // If isShort but the existing records is NOT isPreferred AND isShortName, replace it
-      } else if (isShortName === 1 && !(records[geonameId][1] === 1 && records[geonameId][2] === 1)) {
-        records[geonameId] = [alternateName, isPreferredName, isShortName];
-        // If isPreferred but the existing records is NOT isShort replace it
-      } else if (isPreferredName === 1 && records[geonameId][2] !== 1) {
-        records[geonameId] = [alternateName, isPreferredName, isShortName];
-      } // Otherwise skip reassignment
+        records[geonameId] = newRecord;
+      } else {
+        records[geonameId] = updateRecord(records[geonameId], newRecord);
+      }
     }
   }
 });

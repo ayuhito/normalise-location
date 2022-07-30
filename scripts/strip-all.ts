@@ -121,14 +121,14 @@ const cleanRecords = (recordData: Locations) => {
       }
 
       // If no alt name replacement occurred, just add the record
-      if (altFlag === false && !recordData[record.preferredName]) {
+      /*if (altFlag === false && !recordData[record.preferredName]) {
         recordData[record.preferredName] = {
           preferredName: record.preferredName,
           names: record.names,
           code: record.code,
           population: record.population
         };
-      }
+      }*/
     }
   }
 
@@ -146,9 +146,6 @@ const cleanRecords = (recordData: Locations) => {
 
 parser.on('end', async () => {
   consola.success('Finished parsing.');
-  // const writeStream2 = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNames2.json'), { encoding: 'utf8' });
-  // writeStream2.write(stringify(records));
-
   const cleanedRecords = cleanRecords(records);
 
   for (const countryRecords of Object.keys(recordsCountry)) {

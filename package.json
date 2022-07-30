@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "pkgroll --target=node14 --minify",
+    "generate": "pnpm run geocodes && pnpm run strip-alt && pnpm run strip-all && pnpm run convert",
     "unzip": "tsx ./scripts/unzip.ts",
     "geocodes": "tsx ./scripts/geocodes.ts",
     "strip-all": "tsx ./scripts/strip-all.ts",
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@ayuhito/eslint-config": "^0.2.4",
     "@types/adm-zip": "^0.5.0",
+    "@types/chai": "^4.3.1",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.6.2",
     "c8": "^7.12.0",

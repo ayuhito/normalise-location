@@ -8,12 +8,12 @@ type Options = { country: string };
 
 const normaliseLocation = (location: string, opts: Options): string => {
   if (altNamesCountry[opts.country] === undefined)
-    throw new Error(`Invalid country code! ${opts.country}`);
+    throw new Error(`No country code!`);
 
   const countryNames = altNamesCountry[opts.country].altNames;
   const loc = location.toLowerCase();
 
-  const index = countryNames[loc] || countryNames[loc.replace(/[.,:()]/g, "").replace(/-/g, " ")]
+  const index = countryNames[loc];
   return index ? altNamesCountry[opts.country].normalisedNames[index] : location;
 };
 
