@@ -1,8 +1,9 @@
 import consola from 'consola';
 import { parse } from 'csv-parse';
-import stringify from 'json-stringify-pretty-compact';
+import { stringifyStream } from '@discoveryjs/json-ext';
 import * as fs from 'node:fs';
 import * as path from 'pathe';
+import geocodesImport from '../data/geocodes.json';
 
 import type { AltFinalLocation } from './types';
 
@@ -28,6 +29,7 @@ type Record = [alternateNameid: string, geonameid: string, isolanguage: string, 
 
 const readStream = fs.createReadStream(path.join(process.cwd(), 'dump/raw/alternateNamesV2.txt'), { encoding: 'utf8' });
 const writeStream = fs.createWriteStream(path.join(process.cwd(), 'data/geocodeNames.json'), { encoding: 'utf8' });
+const usableGeocodes = new Set(geocodesImport as string[]);
 
 type LocationRecord = [alternateName: string, isPreferredName: number, isShortName: number]
 interface Locations {
@@ -45,13 +47,15 @@ parser.on('readable', () => {
   let record: Record;
   // eslint-disable-next-line no-cond-assign
   while ((record = parser.read()) !== null) {
-    // We only want English names of places as the normalised form
-    if (record[2] === 'en') {
-      const geonameId = record[1];
+    const geonameId = record[1];
+    // Only refer to iso country codes or undefined, skip post or links
+    if (usableGeocodes.has(geonameId) && record[2].length <= 3) {
       const alternateName = record[3];
       const isPreferredName = record[4] === '' ? 0 : 1;
       const isShortName = record[5] === '' ? 0 : 1;
 
+      // if en
+      //
       // If record doesn't exist, just add any option
       if (!records[geonameId]) {
         records[geonameId] = [alternateName, isPreferredName, isShortName];
@@ -73,7 +77,7 @@ parser.on('error', (err) => {
   consola.error(err.message);
 });
 
-parser.on('end', () => {
+parser.on('end', async () => {
   consola.success('Finished parsing.');
   const newRecords: AltFinalLocation = {};
   for (const geonameId of Object.keys(records)) {
@@ -81,9 +85,18 @@ parser.on('end', () => {
     newRecords[geonameId] = altName;
   }
   consola.success('Finished cleaning records.');
-  writeStream.write(stringify(newRecords));
-  consola.success('Finished writing.');
+  const write = new Promise((resolve, reject) => {
+    stringifyStream(newRecords, null, 2)
+      .on('error', reject)
+      .pipe(writeStream)
+      .on('error', reject)
+      .on('finish', resolve);
+  });
+  await write;
   writeStream.end();
+  consola.success('Finished writing.');
 });
 
+consola.info('Generating preferred names...');
 readStream.pipe(parser);
+

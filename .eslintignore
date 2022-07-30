@@ -1,0 +1,3 @@
+# Eslint server crashes from huge files
+*.json
+*.js

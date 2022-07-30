@@ -14,8 +14,9 @@
   "scripts": {
     "build": "pkgroll --target=node14 --minify",
     "unzip": "tsx ./scripts/unzip.ts",
+    "geocodes": "tsx ./scripts/geocodes.ts",
     "strip-all": "tsx ./scripts/strip-all.ts",
-    "strip-alt": "tsx ./scripts/strip-alt.ts",
+    "strip-alt": " tsx ./scripts/strip-alt.ts",
     "convert": "tsx ./scripts/convert.ts",
     "test": "mocha"
   },
@@ -36,6 +37,7 @@
     "vitest": "^0.19.1"
   },
   "dependencies": {
+    "@discoveryjs/json-ext": "^0.5.7",
     "adm-zip": "^0.5.9",
     "chai": "^4.3.6",
     "consola": "^2.15.3",

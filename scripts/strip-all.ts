@@ -1,12 +1,13 @@
 import consola from 'consola';
 import { parse } from 'csv-parse';
-import stringify from 'json-stringify-pretty-compact';
+import { stringifyStream } from '@discoveryjs/json-ext';
 import * as fs from 'node:fs';
 import * as path from 'pathe';
 
 import altNamesV2 from '../data/geocodeNames.json';
-import { acceptedFeatureCodes, isFeatureCode, LocationCountry, Locations } from '../src/types';
-import type { AltFinalLocation } from './types';
+import geocodesImport from '../data/geocodes.json'
+import { acceptedFeatureCodes, FeatureCodes, isFeatureCode, LocationCountry, Locations } from '../src/types';
+import type { AltFinalLocation, GeocodeRecord } from './types';
 
 
 /* The main 'geoname' table has the following fields :
@@ -47,17 +48,13 @@ V: forest,heath,...
 
 We only want to keep A and P. Remove all others. */
 
-type FeatureClasses = 'A' | 'H' | 'L' | 'P' | 'R' | 'S' | 'T' | 'U' | 'V';
-type Record = [GeonameId: string, Name: string, AsciiName: string, AlternateNames: string, Latitude: string, Longitude: string, FeatureClass: FeatureClasses, FeatureCode: string, CountryCode: string, CC2: string, Admin1Code: string, Admin2Code: string, Admin3Code: string, Admin4Code: string, Population: string, Elevation: string, Dem: string, Timezone: string, ModificationDate: string];
-
 const readStream = fs.createReadStream(path.join(process.cwd(), 'dump/raw/allCountries.txt'), { encoding: 'utf8' });
 const writeStream = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNames.json'), { encoding: 'utf8' });
 const writeStreamCountry = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNamesCountry.json'), { encoding: 'utf8' });
 const altNames = altNamesV2 as AltFinalLocation;
-
+const usableGeocodes = new Set(geocodesImport as string[])
 
 const records: Locations = {};
-
 
 const recordsCountry: LocationCountry = {};
 
@@ -69,11 +66,10 @@ const parser = parse({
 });
 
 parser.on('readable', () => {
-  let record: Record;
+  let record: GeocodeRecord;
   // eslint-disable-next-line no-cond-assign
   while ((record = parser.read()) !== null) {
-    const population = Number(record[14]);
-    if (population > 0 && isFeatureCode(record[7])) {
+    if (usableGeocodes.has(record[0])) {
       const preferredName = altNames[record[0]] ?? record[1];
       // Use set to get rid of duplicates
       const names = record[3] === '' ? new Set([]) : new Set(record[3].split(','));
@@ -83,8 +79,8 @@ parser.on('readable', () => {
       const recordObj = {
         names: [...names],
         preferredName,
-        code: record[7],
-        population,
+        code: record[7] as FeatureCodes,
+        population: Number(record[14]),
       };
 
       records[preferredName] = recordObj;
@@ -139,7 +135,7 @@ const cleanRecords = (recordData: Locations) => {
   return recordData;
 };
 
-parser.on('end', () => {
+parser.on('end', async () => {
   consola.success('Finished parsing.');
   // const writeStream2 = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNames2.json'), { encoding: 'utf8' });
   // writeStream2.write(stringify(records));
@@ -172,11 +168,27 @@ parser.on('end', () => {
   }
   consola.success('Finished cleaning records for export.'); */
 
-  writeStream.write(stringify(cleanedRecords));
-  writeStreamCountry.write(stringify(recordsCountry));
-  consola.success('Finished writing.');
+  const writeRecords = new Promise((resolve, reject) => {
+    stringifyStream(cleanedRecords, null, 2)
+      .on('error', reject)
+      .pipe(writeStream)
+      .on('error', reject)
+      .on('finish', resolve);
+  });
+  await writeRecords;
   writeStream.end();
+
+  const writeCountryRecords = new Promise((resolve, reject) => {
+    stringifyStream(recordsCountry, null, 2)
+      .on('error', reject)
+      .pipe(writeStreamCountry)
+      .on('error', reject)
+      .on('finish', resolve);
+  });
+  await writeCountryRecords;
   writeStreamCountry.end();
+  consola.success('Finished writing.');
 });
 
+consola.info('Generating alternate name records...')
 readStream.pipe(parser);

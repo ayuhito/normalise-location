@@ -13,7 +13,7 @@ const normaliseLocation = (location: string, opts: Options): string => {
   const countryNames = altNamesCountry[opts.country].altNames;
   const loc = location.toLowerCase();
 
-  const index = countryNames[loc] || countryNames[loc.replace(/[.,:()]/g,"").replace("-", " ")];
+  const index = countryNames[loc] || countryNames[loc.replace(/[.,:()]/g, "").replace(/-/g, " ")];
   return altNamesCountry[opts.country].normalisedNames[index];
 };
 

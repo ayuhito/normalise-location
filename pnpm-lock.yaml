@@ -2,6 +2,7 @@ lockfileVersion: 5.4
 
 specifiers:
   '@ayuhito/eslint-config': ^0.2.4
+  '@discoveryjs/json-ext': ^0.5.7
   '@types/adm-zip': ^0.5.0
   '@types/mocha': ^9.1.1
   '@types/node': ^18.6.2
@@ -22,6 +23,7 @@ specifiers:
   vitest: ^0.19.1
 
 dependencies:
+  '@discoveryjs/json-ext': 0.5.7
   adm-zip: 0.5.9
   chai: 4.3.6
   consola: 2.15.3
@@ -114,6 +116,11 @@ packages:
   /@bcoe/v8-coverage/0.2.3:
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
     dev: true
+
+  /@discoveryjs/json-ext/0.5.7:
+    resolution: {integrity: sha512-dBVuXR082gk3jsFp7Rd/JI4kytwGHecnCoTtXFb7DB6CNHp4rg5k1bhg0nWdLGLnOV71lmDzGQaLMy8iPLY0pw==}
+    engines: {node: '>=10.0.0'}
+    dev: false
 
   /@esbuild-kit/cjs-loader/2.3.2:
     resolution: {integrity: sha512-3UIFKrGfq2d2R2A/SpJaeHTP5z3nrOnVMxE+cNpOuuW+Lotm0Sfbc9lVHCjcxaxgcx0MKI7g2FvxvWlylzDRKg==}
