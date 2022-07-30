@@ -23,8 +23,14 @@ describe('normalise location countries', () => {
     expect(normaliseLocation('České Budějovice', { country: 'CZ' })).to.equal('České Budějovice');
   });
 
+  it('Petah Tikva IL', () => {
+    expect(normaliseLocation('Petah Tikva', { country: 'IL' })).to.equal('Petah Tikva');
+    expect(normaliseLocation('Petaẖ Tiqva', { country: 'IL' })).to.equal('Petah Tikva');
+  })
+
   it('Hong Kong HK', () => {
     expect(normaliseLocation('Hong Kong', { country: 'HK' })).to.equal('Hong Kong');
+    expect(normaliseLocation('Hongkong', { country: 'HK' })).to.equal('Hong Kong');
   })
 
   it('Bahçelievler TR', () => {
