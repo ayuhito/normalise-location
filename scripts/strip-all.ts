@@ -81,14 +81,31 @@ parser.on('readable', () => {
         names: [...names],
         preferredName,
         code: record[7] as FeatureCodes,
+        geocode: geonameId,
         population: Number(record[14]),
       };
 
-      records[preferredName] = recordObj;
+      if (records[preferredName]) {
+        // Only overwrite record if higher precedence feature code
+        if (acceptedFeatureCodes.indexOf(recordObj.code) < acceptedFeatureCodes.indexOf(records[preferredName].code)) {
+          records[preferredName] = recordObj;
+        }
+      } else {
+        records[preferredName] = recordObj;
+      }
+
+
       // Also add to country records
       const countryCode = record[8];
       recordsCountry[countryCode] = recordsCountry[countryCode] ?? {};
-      recordsCountry[countryCode][preferredName] = recordObj;
+      if (recordsCountry[countryCode][preferredName]) {
+        // Only overwrite record if higher precedence feature code
+        if (acceptedFeatureCodes.indexOf(recordObj.code) < acceptedFeatureCodes.indexOf(recordsCountry[countryCode][preferredName].code)) {
+          recordsCountry[countryCode][preferredName] = recordObj;
+        }
+      } else {
+        recordsCountry[countryCode][preferredName] = recordObj;
+      }
     }
   }
 });
@@ -104,31 +121,20 @@ const cleanRecords = (recordData: Locations) => {
     // Note that we delete duplicate records, so object keys can be undefined
     if (record) {
       // Check if any alt names exist in existing records
-      let altFlag = false;
       for (const altName of record.names) {
         // Only keep the record with lower index
         if (recordData[altName] && acceptedFeatureCodes.indexOf(record.code) < acceptedFeatureCodes.indexOf(recordData[altName].code)) {
           consola.info(`Replaced ${altName} ${recordData[altName].population} ${recordData[altName].code} with ${record.preferredName} ${record.population} ${record.code}`);
-          altFlag = true;
           delete recordData[altName];
           recordData[record.preferredName] = {
             preferredName: record.preferredName,
             names: record.names,
+            geocode: record.geocode,
             code: record.code,
             population: record.population
           };
         }
       }
-
-      // If no alt name replacement occurred, just add the record
-      /*if (altFlag === false && !recordData[record.preferredName]) {
-        recordData[record.preferredName] = {
-          preferredName: record.preferredName,
-          names: record.names,
-          code: record.code,
-          population: record.population
-        };
-      }*/
     }
   }
 

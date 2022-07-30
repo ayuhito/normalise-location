@@ -8,9 +8,8 @@ describe('normalise location countries', () => {
   it('Geneva CH', () => {
     expect(normaliseLocation('Geneva', { country: 'CH' })).to.equal('Geneva');
     expect(normaliseLocation('Genève', { country: 'CH' })).to.equal('Geneva');
-    expect(normaliseLocation('Jenwe', { country: 'CH' })).to.equal('Geneva');
-    expect(normaliseLocation('CH6621', { country: 'CH' })).to.equal('Geneva');
     expect(normaliseLocation('Canton of Geneva', { country: 'CH' })).to.equal('Geneva');
+    expect(normaliseLocation('Canton de Genève', { country: 'CH' })).to.equal('Geneva');
   });
 
   it('Andelfingen CH', () => {
@@ -26,6 +25,10 @@ describe('normalise location countries', () => {
 
   it('Hong Kong HK', () => {
     expect(normaliseLocation('Hong Kong', { country: 'HK' })).to.equal('Hong Kong');
+  })
+
+  it('Bahçelievler TR', () => {
+    expect(normaliseLocation('Bahçelievler', { country: 'TR' })).to.equal('Bahçelievler');
   })
 
   it('St Petersburg RU', () => {

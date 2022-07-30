@@ -7,6 +7,7 @@ export interface Locations {
   [preferredName: string]: {
     names: string[]
     preferredName: string
+    geocode: string
     code: FeatureCodes
     population: number
   }
