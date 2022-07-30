@@ -132,6 +132,16 @@ const cleanRecords = (recordData: Locations) => {
       }
     }
   }
+
+  // No point in keeping records with only one name, normaliser will just return loc
+  for (const preferredName of Object.keys(recordData)) {
+    const record = recordData[preferredName];
+    if (record) {
+      if (record.names.length === 1) {
+        delete recordData[preferredName];
+      }
+    }
+  }
   return recordData;
 };
 
