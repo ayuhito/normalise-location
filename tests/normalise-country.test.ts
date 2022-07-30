@@ -31,11 +31,6 @@ describe('normalise location countries', () => {
     expect(normaliseLocation('České Budějovice', { country: 'CZ' })).to.equal('Ceske Budejovice');
   });
 
-  it('Trutnov CZ', () => {
-    expect(normaliseLocation('Trutnov', { country: 'CZ' })).to.equal('Trutnov');
-    expect(normaliseLocation('Trutnov District', { country: 'CZ' })).to.equal('Trutnov');
-  })
-
   it('New York US', () => {
     expect(normaliseLocation('New York', { country: 'US' })).to.equal('New York');
     expect(normaliseLocation('New York City', { country: 'US' })).to.equal('New York');

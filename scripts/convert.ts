@@ -1,14 +1,14 @@
 import consola from 'consola';
-import stringify from 'json-stringify-pretty-compact';
 import fs from 'node:fs';
 import * as path from 'pathe';
+import { stringifyStream } from '@discoveryjs/json-ext';
 
 import altNamesCountryImport from '../data/alternateNamesCountry.json';
 import type { LocationCountry, NormaliseCountryData } from '../src/types';
 
 const altNamesCountry = altNamesCountryImport as LocationCountry;
 
-const createDataCountry = () => {
+const createDataCountry = async () => {
   consola.info('Creating src data for countries...');
   const writeStream = fs.createWriteStream(path.join(process.cwd(), 'src/data/altNamesCountry.json'), { encoding: 'utf8' });
   const normalisedData: NormaliseCountryData = {};
@@ -28,7 +28,14 @@ const createDataCountry = () => {
       }
     }
   }
-  writeStream.write(stringify(normalisedData));
+  const write = new Promise((resolve, reject) => {
+    stringifyStream(normalisedData, null, 2)
+      .on('error', reject)
+      .pipe(writeStream)
+      .on('error', reject)
+      .on('finish', resolve);
+  });
+  await write;
   writeStream.end();
   consola.success('Finished creating src data for countries.');
 };

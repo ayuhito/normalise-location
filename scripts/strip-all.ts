@@ -6,7 +6,7 @@ import * as path from 'pathe';
 
 import altNamesV2 from '../data/geocodeNames.json';
 import geocodesImport from '../data/geocodes.json'
-import { acceptedFeatureCodes, FeatureCodes, isFeatureCode, LocationCountry, Locations } from '../src/types';
+import { acceptedFeatureCodes, FeatureCodes, LocationCountry, Locations } from '../src/types';
 import type { AltFinalLocation, GeocodeRecord } from './types';
 
 
@@ -69,8 +69,9 @@ parser.on('readable', () => {
   let record: GeocodeRecord;
   // eslint-disable-next-line no-cond-assign
   while ((record = parser.read()) !== null) {
-    if (usableGeocodes.has(record[0])) {
-      const preferredName = altNames[record[0]] ?? record[1];
+    const geonameId = record[0];
+    if (usableGeocodes.has(geonameId)) {
+      const preferredName = altNames[geonameId] ?? record[1];
       // Use set to get rid of duplicates
       const names = record[3] === '' ? new Set([]) : new Set(record[3].split(','));
       // Just in case preferred name doesn't exist
@@ -95,8 +96,6 @@ parser.on('readable', () => {
 parser.on('error', (err) => {
   consola.error(err.message);
 });
-
-
 
 // Filter out all alt name conflicts with preferred names, every name has to be unique
 const cleanRecords = (recordData: Locations) => {
@@ -158,25 +157,6 @@ parser.on('end', async () => {
   }
 
   consola.success('Finished cleaning out alt name duplicates.');
-
-  // Convert to final export data
-  /* const finalExport: FinalExport = {};
-  for (const preferredName of Object.keys(cleanedRecords)) {
-    const record = cleanedRecords[preferredName];
-    finalExport[preferredName] = record.names;
-  }
-
-  const finalExportCountry: FinalExportCountry = {};
-  for (const countryCode of Object.keys(recordsCountry)) {
-    const countryRecordsObj = recordsCountry[countryCode];
-    finalExportCountry[countryCode] = finalExportCountry[countryCode] ?? {};
-
-    for (const preferredName of Object.keys(countryRecordsObj)) {
-      const record = countryRecordsObj[preferredName];
-      finalExportCountry[countryCode][preferredName] = record.names;
-    }
-  }
-  consola.success('Finished cleaning records for export.'); */
 
   const writeRecords = new Promise((resolve, reject) => {
     stringifyStream(cleanedRecords, null, 2)
