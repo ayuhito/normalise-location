@@ -114,7 +114,7 @@ parser.on('end', async () => {
   }
   consola.success('Finished cleaning records.');
   const write = new Promise((resolve, reject) => {
-    stringifyStream(newRecords, null, 2)
+    stringifyStream(newRecords, undefined, 2)
       .on('error', reject)
       .pipe(writeStream)
       .on('error', reject)
