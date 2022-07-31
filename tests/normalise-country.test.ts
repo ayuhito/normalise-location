@@ -11,6 +11,12 @@ describe('normalise location countries', () => {
     expect(normaliseLocation('San Paulo', { country: 'BR' })).to.equal('São Paulo');
   });
 
+  it('Andelfingen CH', () => {
+    expect(normaliseLocation('Andelfingen', { country: 'CH' })).to.equal('Andelfingen');
+    expect(normaliseLocation('Andelfingen District', { country: 'CH' })).to.equal('Andelfingen');
+    expect(normaliseLocation('Bezirk Andelfingen', { country: 'CH' })).to.equal('Andelfingen');
+  });
+
   it('Geneva CH', () => {
     expect(normaliseLocation('Geneva', { country: 'CH' })).to.equal('Geneva');
     expect(normaliseLocation('Genève', { country: 'CH' })).to.equal('Geneva');
@@ -19,17 +25,17 @@ describe('normalise location countries', () => {
     expect(normaliseLocation('CH013', { country: 'CH' })).to.equal('Geneva');
   });
 
-  it('Andelfingen CH', () => {
-    expect(normaliseLocation('Andelfingen', { country: 'CH' })).to.equal('Andelfingen');
-    expect(normaliseLocation('Andelfingen District', { country: 'CH' })).to.equal('Andelfingen');
-    expect(normaliseLocation('Bezirk Andelfingen', { country: 'CH' })).to.equal('Andelfingen');
-  });
-
   it('Ceske Budejovice CZ', () => {
     expect(normaliseLocation('Ceske Budejovice', { country: 'CZ' })).to.equal('České Budějovice');
     expect(normaliseLocation('České Budějovice', { country: 'CZ' })).to.equal('České Budějovice');
     expect(normaliseLocation('Okres České Budějovice', { country: 'CZ' })).to.equal('České Budějovice');
     expect(normaliseLocation('Ceske Budejovice District', { country: 'CZ' })).to.equal('České Budějovice');
+  });
+
+  it('Frankfurt DE', () => {
+    expect(normaliseLocation('Frankfurt', { country: 'DE' })).to.equal('Frankfurt');
+    expect(normaliseLocation('Frankfurt am Main', { country: 'DE' })).to.equal('Frankfurt');
+    expect(normaliseLocation('Frankfort', { country: 'DE' })).to.equal('Frankfurt');
   });
 
   it('Petah Tikva IL', () => {
@@ -46,6 +52,13 @@ describe('normalise location countries', () => {
 
   it('Bahçelievler TR', () => {
     expect(normaliseLocation('Bahçelievler', { country: 'TR' })).to.equal('Bahçelievler');
+  });
+
+  it('Moscow RU', () => {
+    expect(normaliseLocation('Moscow', { country: 'RU' })).to.equal('Moscow');
+    expect(normaliseLocation('Moskva', { country: 'RU' })).to.equal('Moscow');
+    expect(normaliseLocation('Москва', { country: 'RU' })).to.equal('Moscow');
+    expect(normaliseLocation('Moscow Oblast', { country: 'RU' })).to.equal('Moscow');
   });
 
   it('St Petersburg RU', () => {

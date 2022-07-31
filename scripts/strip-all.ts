@@ -76,6 +76,14 @@ const updateRecord = (oldRecord: LocationObj | undefined, newRecord: LocationObj
     return newRecord;
   }
 
+  // Sometimes you can have same feature codes with matching names, take population as priority
+  if (newRecord.code === oldRecord.code && newRecord.population > oldRecord.population) {
+    // Merge old record's names with new record's names
+    const names = new Set([...newRecord.names, ...oldRecord.names]);
+    newRecord.names = [...names];
+    return newRecord;
+  }
+
   return oldRecord;
 };
 
@@ -114,24 +122,22 @@ parser.on('error', (err) => {
 });
 
 // Filter out all alt name conflicts with preferred names, every name has to be unique
-const cleanRecords = (recordData: Locations) => {
+const cleanRecords = (recordData: Locations): Locations => {
+  let repeat = false;
   for (const preferredName of Object.keys(recordData)) {
     const record = recordData[preferredName];
     // Note that we delete duplicate records, so object keys can be undefined
     if (record) {
       // Check if any alt names exist in existing records
       for (const altName of record.names) {
-        // Only keep the record with lower index
-        if (recordData[altName] && acceptedFeatureCodes.indexOf(record.code) < acceptedFeatureCodes.indexOf(recordData[altName].code)) {
-          consola.info(`Replaced ${altName} ${recordData[altName].population} ${recordData[altName].code} with ${record.preferredName} ${record.population} ${record.code}`);
-          delete recordData[altName];
-          recordData[record.preferredName] = {
-            preferredName: record.preferredName,
-            names: record.names,
-            geocode: record.geocode,
-            code: record.code,
-            population: record.population
-          };
+        if (recordData[altName]) {
+          const newRecord = updateRecord(record, recordData[altName]);
+          if (newRecord !== record) {
+            repeat = true;
+            consola.info(`Replaced ${preferredName} ${record.code} ${record.population} with ${altName} ${newRecord.code} ${newRecord.population}.`);
+            delete recordData[preferredName];
+            recordData[altName] = newRecord;
+          }
         }
       }
     }
@@ -144,16 +150,18 @@ const cleanRecords = (recordData: Locations) => {
       delete recordData[preferredName];
     }
   }
-  return recordData;
+
+  // Recursive because merged names lead to new conflicts
+  return repeat ? cleanRecords(recordData) : recordData;
 };
 
 parser.on('end', async () => {
   consola.success('Finished parsing.');
   const cleanedRecords = cleanRecords(records);
 
-  for (const countryRecords of Object.keys(recordsCountry)) {
-    const cleanedCountryRecords = cleanRecords(recordsCountry[countryRecords]);
-    recordsCountry[countryRecords] = cleanedCountryRecords;
+  for (const countryCode of Object.keys(recordsCountry)) {
+    const cleanedCountryRecords = cleanRecords(recordsCountry[countryCode]);
+    recordsCountry[countryCode] = cleanedCountryRecords;
   }
 
   consola.success('Finished cleaning out alt name duplicates.');
@@ -177,7 +185,7 @@ parser.on('end', async () => {
   });
   await writeCountryRecords;
   writeStreamCountry.end();
-  consola.success('Finished writing.');
+  consola.success(`Finished writing ${Object.keys(cleanedRecords).length} records.`);
 });
 
 consola.info('Generating alternate name records...');
