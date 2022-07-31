@@ -19,6 +19,7 @@
     "strip-all": "tsx ./scripts/strip-all.ts",
     "strip-alt": " tsx ./scripts/strip-alt.ts",
     "convert": "tsx ./scripts/convert.ts",
+    "lint": "eslint --fix",
     "test": "mocha"
   },
   "keywords": [],

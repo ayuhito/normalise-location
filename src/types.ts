@@ -3,14 +3,15 @@ export const acceptedFeatureCodes = ['ADM1', 'ADM2', 'ADM3', 'ADM4', 'ADM5', 'AD
 export type FeatureCodes = typeof acceptedFeatureCodes[number];
 export const isFeatureCode = (featureKey: string): featureKey is FeatureCodes => acceptedFeatureCodes.includes(featureKey as FeatureCodes);
 
+export interface LocationObj {
+  names: string[]
+  preferredName: string
+  geocode: string
+  code: FeatureCodes
+  population: number
+}
 export interface Locations {
-  [preferredName: string]: {
-    names: string[]
-    preferredName: string
-    geocode: string
-    code: FeatureCodes
-    population: number
-  }
+  [preferredName: string]: LocationObj
 }
 
 export interface LocationCountry {

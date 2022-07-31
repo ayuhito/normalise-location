@@ -1,12 +1,12 @@
+import { stringifyStream } from '@discoveryjs/json-ext';
 import consola from 'consola';
 import { parse } from 'csv-parse';
-import { stringifyStream } from '@discoveryjs/json-ext';
 import * as fs from 'node:fs';
 import * as path from 'pathe';
 
 import altNamesV2 from '../data/geocodeNames.json';
-import geocodesImport from '../data/geocodes.json'
-import { acceptedFeatureCodes, FeatureCodes, LocationCountry, Locations } from '../src/types';
+import geocodesImport from '../data/geocodes.json';
+import { acceptedFeatureCodes, FeatureCodes, LocationCountry, LocationObj, Locations } from '../src/types';
 import type { AltFinalLocation, GeocodeRecord } from './types';
 
 
@@ -52,7 +52,7 @@ const readStream = fs.createReadStream(path.join(process.cwd(), 'dump/raw/allCou
 const writeStream = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNames.json'), { encoding: 'utf8' });
 const writeStreamCountry = fs.createWriteStream(path.join(process.cwd(), 'data/alternateNamesCountry.json'), { encoding: 'utf8' });
 const altNames = altNamesV2 as AltFinalLocation;
-const usableGeocodes = new Set(geocodesImport as string[])
+const usableGeocodes = new Set(geocodesImport as string[]);
 
 const records: Locations = {};
 
@@ -64,6 +64,20 @@ const parser = parse({
   encoding: 'utf8',
   relax_quotes: true,
 });
+
+const updateRecord = (oldRecord: LocationObj | undefined, newRecord: LocationObj): LocationObj => {
+  if (oldRecord === undefined)
+    return newRecord;
+
+  if (acceptedFeatureCodes.indexOf(newRecord.code) < acceptedFeatureCodes.indexOf(oldRecord.code)) {
+    // Merge old record's names with new record's names
+    const names = new Set([...newRecord.names, ...oldRecord.names]);
+    newRecord.names = [...names];
+    return newRecord;
+  }
+
+  return oldRecord;
+};
 
 parser.on('readable', () => {
   let record: GeocodeRecord;
@@ -77,7 +91,7 @@ parser.on('readable', () => {
       // Just in case preferred name doesn't exist
       names.add(preferredName);
 
-      const recordObj = {
+      const recordObj: LocationObj = {
         names: [...names],
         preferredName,
         code: record[7] as FeatureCodes,
@@ -85,27 +99,12 @@ parser.on('readable', () => {
         population: Number(record[14]),
       };
 
-      if (records[preferredName]) {
-        // Only overwrite record if higher precedence feature code
-        if (acceptedFeatureCodes.indexOf(recordObj.code) < acceptedFeatureCodes.indexOf(records[preferredName].code)) {
-          records[preferredName] = recordObj;
-        }
-      } else {
-        records[preferredName] = recordObj;
-      }
-
+      records[preferredName] = updateRecord(records[preferredName], recordObj);
 
       // Also add to country records
       const countryCode = record[8];
       recordsCountry[countryCode] = recordsCountry[countryCode] ?? {};
-      if (recordsCountry[countryCode][preferredName]) {
-        // Only overwrite record if higher precedence feature code
-        if (acceptedFeatureCodes.indexOf(recordObj.code) < acceptedFeatureCodes.indexOf(recordsCountry[countryCode][preferredName].code)) {
-          recordsCountry[countryCode][preferredName] = recordObj;
-        }
-      } else {
-        recordsCountry[countryCode][preferredName] = recordObj;
-      }
+      recordsCountry[countryCode][preferredName] = updateRecord(recordsCountry[countryCode][preferredName], recordObj);
     }
   }
 });
@@ -141,10 +140,8 @@ const cleanRecords = (recordData: Locations) => {
   // No point in keeping records with only one name, normaliser will just return loc
   for (const preferredName of Object.keys(recordData)) {
     const record = recordData[preferredName];
-    if (record) {
-      if (record.names.length === 1) {
-        delete recordData[preferredName];
-      }
+    if (record && record.names.length === 1) {
+      delete recordData[preferredName];
     }
   }
   return recordData;
@@ -162,7 +159,7 @@ parser.on('end', async () => {
   consola.success('Finished cleaning out alt name duplicates.');
 
   const writeRecords = new Promise((resolve, reject) => {
-    stringifyStream(cleanedRecords, null, 2)
+    stringifyStream(cleanedRecords, undefined, 2)
       .on('error', reject)
       .pipe(writeStream)
       .on('error', reject)
@@ -172,7 +169,7 @@ parser.on('end', async () => {
   writeStream.end();
 
   const writeCountryRecords = new Promise((resolve, reject) => {
-    stringifyStream(recordsCountry, null, 2)
+    stringifyStream(recordsCountry, undefined, 2)
       .on('error', reject)
       .pipe(writeStreamCountry)
       .on('error', reject)
@@ -183,5 +180,5 @@ parser.on('end', async () => {
   consola.success('Finished writing.');
 });
 
-consola.info('Generating alternate name records...')
+consola.info('Generating alternate name records...');
 readStream.pipe(parser);
