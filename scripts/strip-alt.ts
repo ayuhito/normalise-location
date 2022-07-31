@@ -1,10 +1,10 @@
+import { stringifyStream } from '@discoveryjs/json-ext';
 import consola from 'consola';
 import { parse } from 'csv-parse';
-import { stringifyStream } from '@discoveryjs/json-ext';
 import * as fs from 'node:fs';
 import * as path from 'pathe';
-import geocodesImport from '../data/geocodes.json';
 
+import geocodesImport from '../data/geocodes.json';
 import type { AltFinalLocation } from './types';
 
 /*
@@ -63,8 +63,8 @@ const updateRecord = (oldRecord: LocationRecord, newRecord: LocationRecord): Loc
     return newRecord;
 
   // If new is short and preferred and and old is not short or preferred or English
-  //if (!isShortPreferred[0] && isShortPreferred[1] && !isEn[0])
-  //return newRecord;
+  if (!isShortPreferred[0] && isShortPreferred[1] && !isEn[0])
+    return newRecord;
 
   // If new is short and not short
   // if (!isShort[0] && isShort[1] && !isEn[0])
@@ -75,7 +75,7 @@ const updateRecord = (oldRecord: LocationRecord, newRecord: LocationRecord): Loc
     return newRecord;
 
   return oldRecord;
-}
+};
 
 parser.on('readable', () => {
   let record: Record;
@@ -86,7 +86,7 @@ parser.on('readable', () => {
     // Only refer to iso country codes or undefined, skip post or links, or historical or colloquial
     if (usableGeocodes.has(geonameId) && iso.length <= 3 && record[6] !== '1' && record[7] !== '1') {
       // Remove city, town, the names
-      const alternateName = record[3].replace(/(?:\s+|^)(?:the|city|district)(?:\s+|$)/gi, '').replace(/[.,:()]/g, "").replace(/[-]/g, " ").replace(/s{2,}/g, " ").trim();
+      const alternateName = record[3].replace(/(?:\s+|^)(?:the|city|district)(?:\s+|$)/gi, '').replace(/[(),.:]/g, '').replace(/-/g, ' ').replace(/s{2,}/g, ' ').trim();
       const isPreferredName = record[4] === '' ? 0 : 1;
       const isShortName = record[5] === '' ? 0 : 1;
       const newRecord: LocationRecord = [alternateName, isPreferredName, isShortName, iso];
