@@ -85,8 +85,8 @@ parser.on('readable', () => {
     const iso = record[2];
     // Only refer to iso country codes or undefined, skip post or links, or historical or colloquial
     if (usableGeocodes.has(geonameId) && iso.length <= 3 && record[6] !== '1' && record[7] !== '1') {
-      // Remove city, town, the names
-      const alternateName = record[3].replace(/(?:\s+|^)(?:the|city|district)(?:\s+|$)/gi, '').replace(/[(),.:]/g, '').replace(/-/g, ' ').replace(/s{2,}/g, ' ').trim();
+      // Remove city, town, the names .replace(/[(),.:]/g, '').replace(/-/g, ' ').replace(/s{2,}/g, ' ')
+      const alternateName = record[3].replace(/(?:\s+|^)(?:the|city|district)(?:\s+|$)/gi, '').trim();
       const isPreferredName = record[4] === '' ? 0 : 1;
       const isShortName = record[5] === '' ? 0 : 1;
       const newRecord: LocationRecord = [alternateName, isPreferredName, isShortName, iso];
