@@ -24,15 +24,16 @@ const createDataCountry = async () => {
       const index = normalisedData[countryCode].normalisedNames.length - 1; // Faster than running indexOf everytime
       for (const altName of altNamesCountry[countryCode][name].names) {
         const nameKey = altName.toLowerCase();
-        if (!normalisedData[countryCode].altNames[nameKey]) {
+        normalisedData[countryCode].altNames[nameKey] = index;
+        /* if (!normalisedData[countryCode].altNames[nameKey]) {
           normalisedData[countryCode].altNames[nameKey] = index;
         } else {
           /* const tempIndex = normalisedData[countryCode].altNames[nameKey];
            const recordName = normalisedData[countryCode].normalisedNames[tempIndex];
            const [, hasChanged] = updateRecord(altNamesCountry[countryCode][recordName], altNamesCountry[countryCode][name]);
            if (hasChanged)
-             normalisedData[countryCode].altNames[nameKey] = index; */
-        }
+             normalisedData[countryCode].altNames[nameKey] = index;
+      } */
       }
     }
   }
