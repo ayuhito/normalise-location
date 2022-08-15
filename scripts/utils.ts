@@ -5,13 +5,13 @@ export const updateRecord = (oldRecord: LocationObj | undefined, newRecord: Loca
     return [newRecord, true];
 
   if (acceptedFeatureCodes.indexOf(newRecord.code) < acceptedFeatureCodes.indexOf(oldRecord.code)) {
-    // newRecord.names = [...oldRecord.names, ...newRecord.names];
+    newRecord.names = [...oldRecord.names, ...newRecord.names];
     return [newRecord, true];
   }
 
   // Sometimes you can have same feature codes with matching names, take population as priority
   if (newRecord.code === oldRecord.code && newRecord.population > oldRecord.population) {
-    // newRecord.names = [...oldRecord.names, ...newRecord.names];
+    newRecord.names = [...oldRecord.names, ...newRecord.names];
     return [newRecord, true];
   }
 
